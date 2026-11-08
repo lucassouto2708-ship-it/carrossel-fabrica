@@ -1,5 +1,14 @@
 # Fábrica de carrosséis — como usar
 
+## O jeito fácil: o painel
+Dê **duplo clique em `abrir.bat`**. O navegador abre o painel com tudo:
+1. **Aba Prompt da IA:** preenche nicho, público, tom e tema e copia o prompt pronto.
+2. **Aba Carrosséis:** cria o carrossel, arrasta as fotos, cola a resposta da IA (pode colar a resposta inteira) e clica em **Gerar carrossel**.
+3. Os slides aparecem na tela; baixe tudo em .zip e copie a legenda.
+4. **Aba Estilo:** assinatura, cores e escurecimento da foto.
+
+Para fechar, feche a janela preta. O resto deste arquivo explica a estrutura de pastas por baixo do painel.
+
 ## Estrutura (duas pastas separadas, sem renomear foto)
 ```
 carrossel-fabrica/

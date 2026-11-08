@@ -228,6 +228,8 @@ def processar(txt: Path, cfg, refazer):
         return
 
     saida.mkdir(parents=True, exist_ok=True)
+    for velho in saida.glob("slide_*.jpg"):  # evita sobrar slide de uma versão anterior
+        velho.unlink()
     cont_auto = 0
     for i, s in enumerate(slides, 1):
         foto = None
