@@ -186,9 +186,26 @@
   footer .grande{color:var(--ink);font-size:15px;margin-bottom:8px}
   footer span.cursor{color:var(--blue)}
 
-  #zoom{position:fixed;inset:0;background:rgba(5,5,6,.88);display:none;place-items:center;z-index:40;cursor:zoom-out}
-  #zoom.on{display:grid}
-  #zoom img{max-width:94vw;max-height:94vh;border:1.5px solid #fff}
+  #zoom{position:fixed;inset:0;background:rgba(5,5,6,.93);display:none;align-items:center;justify-content:center;gap:32px;z-index:40;padding:20px}
+  #zoom.on{display:flex}
+  .z-centro{display:flex;flex-direction:column;align-items:center;gap:16px}
+  #zoom img{display:block;max-height:80vh;max-width:min(92vw,64vh);border:1.5px solid #fff;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .z-info{display:flex;gap:22px;align-items:center;font:400 12px "JetBrains Mono",monospace;color:#A0A0A8}
+  #zDots{letter-spacing:5px}
+  #zDots .a{color:#648CFF}
+  .z-seta,.z-fechar{background:none;border:1.5px solid #fff;color:#fff;font:600 14px "JetBrains Mono",monospace;padding:16px 12px;cursor:pointer;transition:.2s;white-space:nowrap}
+  .z-seta:hover,.z-fechar:hover{color:#648CFF;border-color:#648CFF}
+  .z-seta[disabled]{opacity:.25;pointer-events:none}
+  .z-fechar{position:absolute;top:18px;right:18px;padding:10px 14px;font-size:12px}
+  .z-dica{color:#6B6B72}
+  @media (max-width:760px){
+    #zoom{gap:0;padding:0}
+    .z-seta{position:absolute;bottom:18px;padding:12px 10px;z-index:2}
+    .z-prev{left:16px}.z-next{right:16px}
+    .z-centro{margin-bottom:56px}
+    #zoom img{max-width:100vw;max-height:72vh}
+    .z-dica{display:none}
+  }
   #aviso-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;font:400 13px "JetBrains Mono",monospace;display:none;z-index:50;max-width:92vw}
 
   /* ---------- movimento ---------- */
@@ -288,7 +305,15 @@
   </div>
 </footer>
 
-<div id="zoom"><img alt=""></div>
+<div id="zoom" role="dialog" aria-label="Visualização do carrossel">
+  <button class="z-fechar" id="zFechar">[ fechar × ]</button>
+  <button class="z-seta z-prev" id="zPrev" aria-label="Slide anterior">[ ← ]</button>
+  <div class="z-centro">
+    <img alt="Slide">
+    <div class="z-info"><span id="zDots"></span><span id="zNum"></span><span class="z-dica">← → navegar · esc fecha</span></div>
+  </div>
+  <button class="z-seta z-next" id="zNext" aria-label="Próximo slide">[ → ]</button>
+</div>
 <div id="aviso-toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -856,13 +881,46 @@ function desenharResultado(){
     bar.innerHTML = `<span>[${String(i + 1).padStart(2, '0')}]</span><button class="lnk">&gt; baixar</button>`;
     bar.querySelector('button').onclick = async () => baixar(await paraBlob(cv), `${slug(r.nome)}-${String(i + 1).padStart(2, '0')}.jpg`);
     d.appendChild(bar); g.appendChild(d);
-    cv.onclick = () => ampliar(cv);
+    cv.onclick = () => ampliar(i);
   });
-  $('#abre').onclick = () => ampliar(r.canvases[0]);
+  $('#abre').onclick = () => ampliar(0);
   $('#zip').onclick = baixarZip;
   if($('#copLeg')) $('#copLeg').onclick = () => { navigator.clipboard.writeText($('#leg').value); toast('legenda copiada'); };
 }
-function ampliar(cv){ $('#zoom img').src = cv.toDataURL('image/jpeg', .9); $('#zoom').classList.add('on'); }
+/* ---------- visualizador (como a pessoa vê o carrossel) ---------- */
+let zi = 0;
+const zAberto = () => $('#zoom').classList.contains('on');
+function ampliar(i){ zi = i; mostrarZoom(); $('#zoom').classList.add('on'); }
+function mostrarZoom(){
+  const cs = resultado.canvases, p2 = n => String(n).padStart(2, '0');
+  $('#zoom img').src = cs[zi].toDataURL('image/jpeg', .92);
+  $('#zoom img').alt = `Slide ${zi + 1} de ${cs.length}`;
+  $('#zNum').textContent = `[${p2(zi + 1)}/${p2(cs.length)}]`;
+  $('#zDots').innerHTML = cs.map((_, k) => k === zi ? '<span class="a">●</span>' : '○').join('');
+  $('#zPrev').disabled = zi === 0; $('#zNext').disabled = zi === cs.length - 1;
+}
+function zIr(d){
+  const n = zi + d;
+  if(!resultado || n < 0 || n >= resultado.canvases.length) return;
+  zi = n; mostrarZoom();
+}
+function zFechar(){ $('#zoom').classList.remove('on'); }
+$('#zPrev').onclick = e => { e.stopPropagation(); zIr(-1); };
+$('#zNext').onclick = e => { e.stopPropagation(); zIr(1); };
+$('#zFechar').onclick = e => { e.stopPropagation(); zFechar(); };
+$('#zoom img').onclick = e => {               // como no Instagram: metade direita avança, esquerda volta
+  e.stopPropagation();
+  const r = e.target.getBoundingClientRect();
+  zIr(e.clientX - r.left > r.width / 2 ? 1 : -1);
+};
+$('#zoom').onclick = e => { if(!e.target.closest('.z-seta, .z-fechar, #zoom img, .z-info')) zFechar(); };
+let zx = null;                                // arrastar com o dedo no celular
+$('#zoom').addEventListener('touchstart', e => { zx = e.touches[0].clientX; }, {passive:true});
+$('#zoom').addEventListener('touchend', e => {
+  if(zx === null) return;
+  const dx = e.changedTouches[0].clientX - zx; zx = null;
+  if(Math.abs(dx) > 50) zIr(dx < 0 ? 1 : -1);
+});
 
 const paraBlob = cv => new Promise(res => cv.toBlob(res, 'image/jpeg', .95));
 function baixar(blob, nome){
@@ -877,8 +935,12 @@ async function baixarZip(){
   if(leg) z.file('legenda.txt', leg);
   baixar(await z.generateAsync({type:'blob'}), `${base}.zip`);
 }
-$('#zoom').onclick = () => $('#zoom').classList.remove('on');
-document.addEventListener('keydown', e => { if(e.key === 'Escape') $('#zoom').classList.remove('on'); });
+document.addEventListener('keydown', e => {
+  if(!zAberto()) return;
+  if(e.key === 'Escape') zFechar();
+  else if(e.key === 'ArrowRight'){ e.preventDefault(); zIr(1); }
+  else if(e.key === 'ArrowLeft'){ e.preventDefault(); zIr(-1); }
+});
 
 /* =========================================================
    Abas, tema, marquee
