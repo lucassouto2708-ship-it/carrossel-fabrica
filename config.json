@@ -1,0 +1,19 @@
+{
+  "largura": 1080,
+  "altura": 1350,
+  "fonte": "C:/Windows/Fonts/georgiab.ttf",
+  "fonte_pequena": "C:/Windows/Fonts/georgia.ttf",
+  "cor_texto": "#FFF8BB",
+  "cor_destaque": "#7DB8FF",
+  "cor_fundo_escuro": "#1B3556",
+  "cor_fundo_claro": "#FFFFFF",
+  "cor_texto_sobre_claro": "#1B3556",
+  "cor_destaque_sobre_claro": "#2F6FD0",
+  "escurecer_foto": 0.38,
+  "margem": 90,
+  "tamanho_fonte_max": 130,
+  "tamanho_fonte_min": 48,
+  "assinatura": "@seuperfil",
+  "assinatura_nos_slides_de_foto": false,
+  "qualidade_jpg": 95
+}
