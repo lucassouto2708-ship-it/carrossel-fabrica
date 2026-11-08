@@ -262,7 +262,7 @@
     <div class="bloco"><div class="wrap estreito">
       <div class="eyebrow">// prompt para a ia</div>
       <h2>Peça o texto do carrossel <em>pronto</em></h2>
-      <p class="sub">Preencha, copie e cole no ChatGPT, Claude ou Gemini. A IA devolve o texto dos slides e a lista de fotos.</p>
+      <p class="sub">Preencha, copie e cole no ChatGPT, Claude ou Gemini. A IA devolve o texto dos slides e um prompt de imagem para cada foto. Use esses prompts em um gerador de imagem, anexando a sua foto de referência.</p>
       <div class="grade">
         <div><label for="pNicho">// seu nicho</label><input type="text" id="pNicho" placeholder="ex: hospedagem e turismo rural"></div>
         <div><label for="pPublico">// seu público</label><input type="text" id="pPublico" placeholder="ex: famílias cansadas da correria"></div>
@@ -649,7 +649,7 @@ function desenharArea(){
     area.innerHTML = `<div class="vazio rev"><div class="eyebrow">// primeiro carrossel</div>
       <h2>Vamos montar o <em>primeiro</em></h2>
       <ol><li>Dê um nome no campo acima e clique em <b>criar</b>.</li>
-      <li>Na aba <b>prompt da ia</b>, peça o texto e a lista de fotos.</li>
+      <li>Na aba <b>prompt da ia</b>, peça o texto e os prompts das fotos.</li>
       <li>Jogue as fotos aqui, cole o texto e clique em <b>gerar</b>.</li></ol></div>`;
     revelar(); return;
   }

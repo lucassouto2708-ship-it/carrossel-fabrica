@@ -40,7 +40,7 @@ Regras de texto:
 
 ## Formato de saída (siga letra por letra)
 
-Devolva DOIS blocos de código separados.
+Devolva duas partes: o BLOCO 1 (um único bloco de código com o texto dos slides) e o BLOCO 2 (os prompts das imagens, um bloco de código por foto).
 
 ### BLOCO 1 — `texto.txt`
 Cada slide é separado por uma linha com `---`. Campos de cada slide:
@@ -81,10 +81,36 @@ Texto da legenda aqui.
 #hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5
 ```
 
-### BLOCO 2 — Lista de fotos que eu preciso tirar/escolher
-Uma tabela numerada (foto 1, foto 2, foto 3...) com: o que deve aparecer na foto (cenário, expressão, enquadramento, iluminação) e em qual slide ela entra. Regras para as fotos:
-- Vertical (4:5), boa iluminação, fundo não muito poluído.
-- Deixe uma área calma (parede, mesa vazia, sombra) no lugar onde o texto vai ficar (topo/centro/base conforme o POSICAO do slide).
-- Pense em 3 a 5 fotos no total, de cenas simples do dia a dia. Fotos podem se repetir em slides diferentes.
+### BLOCO 2 — Prompts das imagens (um por foto)
+Eu vou gerar cada foto em OUTRA IA de imagem, anexando uma foto minha de referência para que a pessoa na imagem seja eu (rosto idêntico, sem erros). Então, para cada foto, escreva um título `FOTO N (slide X)` e, logo abaixo, UM bloco de código com o prompt completo, pronto para copiar e colar. Escreva os prompts de imagem em INGLÊS (geradores de imagem respondem melhor).
 
-Não escreva mais nada além dos dois blocos.
+Cada prompt segue esta estrutura, nesta ordem:
+1. **Trava de identidade** (copie exatamente este texto no começo de TODOS os prompts, sem mudar nada):
+   `Use the person in the attached reference photo as the exact subject. Keep the face, facial features, skin tone, hair, beard and body proportions identical to the reference. Do not change, beautify, age or stylize the face. The same person must appear in every image.`
+2. **Cena:** o que a pessoa está fazendo, pose natural, expressão, direção do olhar, roupa específica (tipo e cor), e o ambiente com detalhes concretos (objetos, materiais, profundidade, horário do dia).
+3. **Câmera e luz:** câmera/lente (ex.: 50mm f/1.8), enquadramento (close, plano médio, plano americano), ângulo, tipo e direção da luz, temperatura de cor, contraste, profundidade de campo.
+4. **Look:** fotografia realista de estilo editorial, textura de pele natural, correção de cor definida (ex.: tons quentes, sombras suaves), grão sutil.
+5. **Composição para o texto:** formato vertical 4:5. Posicione a pessoa de modo a deixar uma área limpa e calma (sem objetos chamativos) exatamente onde o texto vai ficar: parte de baixo se o slide for `POSICAO: base`, parte de cima se for `topo`, faixa do meio se for `centro`. Diga isso no prompt, com palavras claras (ex.: "keep the lower third clean and uncluttered for text overlay").
+6. **Evitar** (termine todo prompt com esta linha): `Avoid: any text, letters, logos, watermarks, captions, extra fingers, distorted hands, deformed face, plastic skin, extra people, cartoon or 3D look.`
+
+Regras dos prompts:
+- NÃO descreva rosto, idade, cabelo, barba nem traços do meu físico. A foto de referência cuida disso; descrever pode gerar conflito e mudar meu rosto.
+- Mantenha coerência entre todas as fotos do carrossel: mesma pessoa, roupa e paleta de cores parecidas, mesmo clima de luz e mesmo tipo de ambiente (a não ser que a história do carrossel peça mudança).
+- Cada prompt é independente: a outra IA não vê os demais. Repita a trava de identidade e o estilo visual em todos.
+- Seja específico e concreto (cores, objetos, materiais, ângulo). Evite palavras vagas como "bonito", "incrível", "perfeito".
+- A cena deve ser realista, do dia a dia do meu nicho, e combinar com o texto do slide.
+- De 3 a 5 fotos no total. A mesma foto pode servir a mais de um slide.
+
+Exemplo do formato do BLOCO 2 (uma foto):
+
+FOTO 1 (slide 1)
+```
+Use the person in the attached reference photo as the exact subject. Keep the face, facial features, skin tone, hair, beard and body proportions identical to the reference. Do not change, beautify, age or stylize the face. The same person must appear in every image.
+Scene: the person sits at a wooden desk in a bright home office, one hand resting on a closed laptop, looking directly at the camera with a calm, slightly serious expression, wearing a plain charcoal crew-neck t-shirt. A small green plant and a ceramic mug sit on the desk, soft window light from the left.
+Camera and light: 50mm lens, f/1.8, eye-level medium shot, shallow depth of field, warm natural window light with soft shadows.
+Look: realistic editorial photography, natural skin texture, warm muted color grade, subtle film grain.
+Composition: vertical 4:5, the person placed in the upper two thirds of the frame, keep the lower third clean and uncluttered (plain wall and desk surface) for text overlay.
+Avoid: any text, letters, logos, watermarks, captions, extra fingers, distorted hands, deformed face, plastic skin, extra people, cartoon or 3D look.
+```
+
+Não escreva mais nada além do BLOCO 1 e do BLOCO 2.
