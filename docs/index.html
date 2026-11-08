@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fábrica de Carrosséis</title>
+<script>
+  // define o tema antes de pintar a página, para não piscar
+  (function(){
+    var t = null;
+    try { t = localStorage.getItem('tema'); } catch(e) {}
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Fraunces:opsz,wght@9..144,700&family=Lora:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f1ea; --surface:#fbfaf6; --ink:#1e2530; --mut:#6c7280; --line:#ddd7c9;
+    --accent:#1b3556; --on-accent:#fff; --accent-soft:#e7ecf4; --warn-bg:#fbf0d9; --warn-ink:#7a5410;
+    --ok:#2f7d4f; --err:#b3392f; --shadow:0 1px 2px rgba(30,37,48,.06);
+  }
+  :root[data-theme=dark]{
+    --bg:#14171c; --surface:#1b1f26; --ink:#e9e6df; --mut:#97a0ae; --line:#2b313b;
+    --accent:#fff8bb; --on-accent:#262200; --accent-soft:#252b36; --warn-bg:#332a14; --warn-ink:#f0cf8a;
+    --ok:#6cc58d; --err:#ff8a80; --shadow:none;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:light dark}
+  :root[data-theme=light]{color-scheme:light}
+  :root[data-theme=dark]{color-scheme:dark}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{margin:0;font-weight:700}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  a{color:var(--accent)}
+
+  /* topo */
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+  .top{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px}
+  .marca{font-family:Georgia,serif;font-size:21px;font-weight:700;letter-spacing:-.2px;margin-right:auto}
+  nav{display:flex;gap:2px}
+  nav button{background:none;border:0;padding:7px 12px;border-radius:6px;color:var(--mut);font-weight:600}
+  nav button:hover{color:var(--ink)}
+  nav button[aria-selected=true]{color:var(--ink);background:var(--accent-soft)}
+  .tema{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink)}
+  .tema:hover{border-color:var(--mut)}
+  .tema svg{width:18px;height:18px}
+  .tema .sol{display:none}
+  :root[data-theme=dark] .tema .sol{display:block}
+  :root[data-theme=dark] .tema .lua{display:none}
+
+  @media (max-width:640px){
+    .top{flex-wrap:wrap;gap:8px 12px;padding:10px 16px}
+    .marca{order:1;font-size:19px}
+    .tema{order:2}
+    nav{order:3;width:100%;overflow-x:auto}
+    nav button{padding:7px 10px;white-space:nowrap}
+  }
+  main{max-width:1120px;margin:0 auto;padding:26px 20px 60px}
+  @media (max-width:640px){
+    main{padding:20px 16px 50px}
+    .novo{width:100%}.novo input{flex:1;width:auto;min-width:0}
+    .barra select{min-width:0;width:100%}
+  }
+  .aba{display:none}
+  .aba.on{display:block}
+
+  /* controles */
+  input[type=text],input[type=number],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+  textarea{resize:vertical;line-height:1.5}
+  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .btn{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 14px;font-weight:600;box-shadow:var(--shadow);text-decoration:none;color:var(--ink);display:inline-block}
+  .btn:hover{border-color:var(--mut)}
+  .btn.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .btn.pri:hover{filter:brightness(1.08)}
+  .btn.grande{padding:13px 26px;font-size:17px}
+  .btn[disabled]{opacity:.5;cursor:default}
+  .link{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;font-size:14px}
+  .link:hover{color:var(--ink)}
+  label{display:block;font-size:14px;color:var(--mut);margin-bottom:5px}
+  .dica{color:var(--mut);font-size:14px;margin:8px 0 0}
+
+  /* barra do projeto */
+  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:26px}
+  .barra select{width:auto;min-width:220px;max-width:100%;font-weight:600}
+  .novo{display:flex;gap:8px;align-items:center}
+  .novo input{width:230px}
+
+  /* layout de trabalho */
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:start}
+  @media (max-width:900px){.cols{grid-template-columns:1fr;gap:30px}}
+  .passo{margin-bottom:34px}
+  .passo h2{font-size:19px;margin-bottom:3px;display:flex;align-items:baseline;gap:10px}
+  .passo h2 small{font-family:system-ui,sans-serif;font-size:13px;font-weight:500;color:var(--mut);margin-left:auto}
+  .passo > p.sub{margin:0 0 12px;color:var(--mut);font-size:14.5px}
+
+  .drop{border:1.5px dashed var(--line);border-radius:8px;padding:22px 16px;text-align:center;color:var(--mut);cursor:pointer;background:var(--surface)}
+  .drop:hover,.drop.sobre{border-color:var(--accent);color:var(--ink)}
+  .drop b{color:var(--ink)}
+  .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:14px}
+  .foto{position:relative}
+  .foto .img{aspect-ratio:4/5;border-radius:6px;overflow:hidden;background:var(--line)}
+  .foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .foto .n{position:absolute;left:5px;top:5px;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;border-radius:4px;padding:0 7px;line-height:20px}
+  .foto .ac{display:flex;justify-content:space-between;margin-top:3px}
+  .foto .ac button{background:none;border:0;color:var(--mut);padding:0 4px;font-size:15px;line-height:1}
+  .foto .ac button:hover{color:var(--ink)}
+
+  .vazio{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:28px 26px}
+  .vazio h2{font-family:Georgia,serif;font-size:24px;margin-bottom:8px}
+  .vazio ol{padding-left:20px;margin:12px 0 0}
+  .vazio li{margin-bottom:5px}
+
+  .formato{margin-top:10px;font-size:14px}
+  .formato summary{cursor:pointer;color:var(--mut)}
+  pre{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:13px;margin:8px 0 0}
+
+  .status{font-size:14px;color:var(--mut)}
+  .status.ok{color:var(--ok)} .status.erro{color:var(--err)}
+  .linha{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+
+  /* resultado */
+  .res{position:sticky;top:78px}
+  @media (max-width:900px){.res{position:static}}
+  .res h2{font-size:19px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .res h2 .linha{margin-left:auto}
+  .slides{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .sl canvas{width:100%;height:auto;display:block;border-radius:6px;border:1px solid var(--line);cursor:zoom-in}
+  .sl div{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-top:4px}
+  .aviso{background:var(--warn-bg);color:var(--warn-ink);border-radius:6px;padding:10px 14px;font-size:14px;margin-bottom:14px}
+  .res-vazio{color:var(--mut);border:1px dashed var(--line);border-radius:8px;padding:50px 20px;text-align:center}
+
+  /* prompt / estilo */
+  .estreito{max-width:760px}
+  .grade{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:620px){.grade{grid-template-columns:1fr}}
+  .cores{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:6px}
+  .cor{display:flex;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 10px;font-size:14px}
+  .cor input{width:34px;height:34px;border:0;padding:0;background:none;cursor:pointer}
+  .cor code{display:block;color:var(--mut);font-size:12px}
+  hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+  #zoom{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;place-items:center;z-index:20;cursor:zoom-out}
+  #zoom.on{display:grid}
+  #zoom img{max-width:94vw;max-height:94vh;border-radius:6px}
+  #aviso-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:14px;display:none;z-index:30}
+  footer{max-width:1120px;margin:0 auto;padding:0 20px 40px;color:var(--mut);font-size:13.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="marca">Fábrica de Carrosséis</div>
+    <nav role="tablist">
+      <button role="tab" data-aba="carrosseis" aria-selected="true">Carrosséis</button>
+      <button role="tab" data-aba="prompt" aria-selected="false">Prompt da IA</button>
+      <button role="tab" data-aba="estilo" aria-selected="false">Estilo</button>
+    </nav>
+    <button class="tema" id="tema" title="Alternar claro e escuro" aria-label="Alternar claro e escuro">
+      <svg class="lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- CARROSSÉIS -->
+  <section class="aba on" id="aba-carrosseis">
+    <div class="barra" id="barra"></div>
+    <div id="area"></div>
+  </section>
+
+  <!-- PROMPT -->
+  <section class="aba" id="aba-prompt">
+    <div class="estreito">
+      <h2 class="serif" style="font-size:26px;margin-bottom:6px">Prompt para a IA</h2>
+      <p class="dica" style="margin:0 0 20px">Preencha, copie e cole no ChatGPT, Claude ou Gemini. Ele devolve o texto dos slides e a lista de fotos que você precisa.</p>
+      <div class="grade">
+        <div><label for="pNicho">Seu nicho</label><input type="text" id="pNicho" placeholder="ex: hospedagem e turismo rural"></div>
+        <div><label for="pPublico">Seu público</label><input type="text" id="pPublico" placeholder="ex: famílias cansadas da correria"></div>
+        <div><label for="pTom">Tom de voz</label><input type="text" id="pTom" placeholder="ex: acolhedor e direto"></div>
+        <div><label for="pSlides">Número de slides</label><input type="number" id="pSlides" value="8" min="4" max="12"></div>
+      </div>
+      <div style="margin-top:14px"><label for="pTema">Tema deste carrossel</label><input type="text" id="pTema" placeholder="ex: um dia sem pressa com a família"></div>
+      <div class="linha" style="margin:22px 0 8px"><button class="btn pri" id="pCopiar">Copiar prompt</button><span class="status" id="pStatus"></span></div>
+      <textarea id="pSaida" readonly style="min-height:300px;font-size:13.5px"></textarea>
+    </div>
+  </section>
+
+  <!-- ESTILO -->
+  <section class="aba" id="aba-estilo">
+    <div class="estreito">
+      <h2 class="serif" style="font-size:26px;margin-bottom:6px">Estilo dos slides</h2>
+      <p class="dica" style="margin:0 0 20px">As mudanças valem na próxima vez que você gerar um carrossel.</p>
+      <div class="grade">
+        <div><label for="cFonte">Fonte</label><select id="cFonte"></select></div>
+        <div><label for="cAssinatura">Assinatura no rodapé</label><input type="text" id="cAssinatura" placeholder="@seuperfil"></div>
+      </div>
+      <div style="margin-top:16px"><label for="cEscurecer">Escurecer as fotos: <b id="cEscVal"></b></label><input type="range" id="cEscurecer" min="0" max="0.8" step="0.02" style="width:100%"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin:14px 0;color:var(--ink)"><input type="checkbox" id="cAssFoto"> Mostrar a assinatura também nos slides com foto</label>
+      <label style="margin-top:18px">Cores</label>
+      <div class="cores" id="cores"></div>
+      <div class="linha" style="margin-top:22px"><button class="btn" id="cPadrao">Voltar ao padrão</button><span class="status" id="cStatus"></span></div>
+    </div>
+  </section>
+</main>
+
+<footer>Tudo roda no seu navegador. As fotos e os textos ficam só neste aparelho e nada é enviado a lugar nenhum.</footer>
+
+<div id="zoom"><img alt=""></div>
+<div id="aviso-toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* =========================================================
+   Configuração e estilo
+   ========================================================= */
+const FONTES = [
+  {id:'georgia',  nome:'Georgia (padrão do sistema)', familia:'Georgia', peso:700},
+  {id:'playfair', nome:'Playfair Display',            familia:'Playfair Display', peso:700},
+  {id:'lora',     nome:'Lora',                        familia:'Lora', peso:700},
+  {id:'dmserif',  nome:'DM Serif Display',            familia:'DM Serif Display', peso:400},
+  {id:'fraunces', nome:'Fraunces',                    familia:'Fraunces', peso:700},
+];
+const PADRAO = {
+  fonte:'georgia', assinatura:'', assinaturaFoto:false, escurecer:0.38,
+  corTexto:'#FFF8BB', corDestaque:'#7DB8FF', fundoEscuro:'#1B3556', fundoClaro:'#FFFFFF',
+  textoSobreClaro:'#1B3556', destaqueSobreClaro:'#2F6FD0',
+};
+const ROT_CORES = [
+  ['corTexto','Texto sobre foto'], ['corDestaque','Destaque sobre foto'],
+  ['fundoEscuro','Fundo escuro'], ['fundoClaro','Fundo claro'],
+  ['textoSobreClaro','Texto no fundo claro'], ['destaqueSobreClaro','Destaque no fundo claro'],
+];
+const W = 1080, H = 1350, M = 90, TAM_MAX = 130, TAM_MIN = 48;
+
+function lerCfg(){
+  try { return {...PADRAO, ...JSON.parse(localStorage.getItem('cfg') || '{}')}; } catch(e){ return {...PADRAO}; }
+}
+function salvarCfg(c){ try { localStorage.setItem('cfg', JSON.stringify(c)); } catch(e){} }
+let cfg = lerCfg();
+
+/* =========================================================
+   Armazenamento (IndexedDB): carrosséis com fotos e texto
+   ========================================================= */
+let memoria = new Map();   // se o navegador não deixar usar IndexedDB (aba anônima)
+let dbOk = true;
+const dbp = new Promise(res => {
+  try{
+    const r = indexedDB.open('carrossel-fabrica', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('projetos', {keyPath:'nome'});
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => { dbOk = false; res(null); };
+  }catch(e){ dbOk = false; res(null); }
+});
+async function store(modo, fn){
+  const db = await dbp;
+  if(!db) return null;
+  return new Promise((res, rej) => {
+    const t = db.transaction('projetos', modo), s = t.objectStore('projetos'), r = fn(s);
+    t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error);
+  });
+}
+const dbListar = async () => dbOk ? (await store('readonly', s => s.getAll())) || [] : [...memoria.values()];
+const dbSalvar = p => dbOk ? store('readwrite', s => s.put(p)) : (memoria.set(p.nome, p), null);
+const dbApagar = n => dbOk ? store('readwrite', s => s.delete(n)) : (memoria.delete(n), null);
+
+/* =========================================================
+   Leitura do texto (mesmo formato do gerador em Python)
+   ========================================================= */
+function extrairTexto(bruto){
+  if(bruto.includes('```')){
+    const blocos = [...bruto.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(m => m[1]);
+    const cand = blocos.find(b => /^\s*TEXTO\s*:/im.test(b));
+    if(cand) return cand.trim() + '\n';
+  }
+  return bruto;
+}
+
+function lerTexto(bruto){
+  let legenda = '';
+  const partes = bruto.split(/^\s*===\s*LEGENDA\s*===\s*$/mi);
+  if(partes.length > 1){ bruto = partes[0]; legenda = partes.slice(1).join('\n').trim(); }
+  const slides = [];
+  for(let bloco of bruto.split(/^\s*---\s*$/m)){
+    bloco = bloco.trim(); if(!bloco) continue;
+    const c = {foto:null, fundo:null, posicao:'base', texto:[]};
+    let atual = null;
+    for(const linha of bloco.split(/\r?\n/)){
+      const m = linha.match(/^\s*(FOTO|FUNDO|POSICAO|POSIÇÃO|TEXTO|TEMA)\s*:\s*(.*)$/i);
+      if(m){
+        const k = m[1].toLowerCase().replace('ç','c').replace('ã','a'), v = m[2].trim();
+        if(k === 'tema'){ atual = null; continue; }
+        if(k === 'texto'){ c.texto = v ? [v] : []; atual = 'texto'; }
+        else { c[k] = v; atual = null; }
+      } else if(atual === 'texto' && linha.trim()){ c.texto.push(linha.trim()); }
+    }
+    if(c.texto.length){ c.texto = c.texto.join(' '); slides.push(c); }
+  }
+  return {slides, legenda};
+}
+
+/* =========================================================
+   Desenho dos slides (Canvas)
+   ========================================================= */
+function tokens(texto){
+  const saida = []; let dest = false, fimEsp = true;
+  for(const parte of texto.split(/(\*)/)){
+    if(parte === '*'){ dest = !dest; continue; }
+    if(!parte) continue;
+    const pal = parte.split(/\s+/).filter(Boolean);
+    if(pal.length && saida.length && !fimEsp && !/^\s/.test(parte)){
+      saida[saida.length-1] = [saida[saida.length-1][0] + pal.shift(), saida[saida.length-1][1]];
+    }
+    for(const p of pal) saida.push([p, dest]);
+    fimEsp = /\s$/.test(parte);
+  }
+  return saida;
+}
+
+function quebrar(g, palavras, larg){
+  const linhas = []; let atual = [], w = 0; const esp = g.measureText(' ').width;
+  for(const [p, d] of palavras){
+    const pw = g.measureText(p).width, extra = atual.length ? esp + pw : pw;
+    if(atual.length && w + extra > larg){ linhas.push(atual); atual = [[p, d]]; w = pw; }
+    else { atual.push([p, d]); w += extra; }
+  }
+  if(atual.length) linhas.push(atual);
+  return linhas;
+}
+
+function fonteCss(f, tam){ return `${f.peso} ${tam}px "${f.familia}", Georgia, "Times New Roman", serif`; }
+
+function desenharSlide(slide, bmp, c, f){
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const sobreFoto = !!bmp;
+  const claro = !sobreFoto && /^clar/i.test(slide.fundo || '');
+  let corTxt, corDest;
+
+  if(sobreFoto){
+    const s = Math.max(W / bmp.width, H / bmp.height);
+    g.drawImage(bmp, (W - bmp.width * s) * .5, (H - bmp.height * s) * .4, bmp.width * s, bmp.height * s);
+    g.fillStyle = `rgba(0,0,0,${c.escurecer})`; g.fillRect(0, 0, W, H);
+    const pos = (slide.posicao || 'base').toLowerCase(), gr = g.createLinearGradient(0, 0, 0, H), A = 150 / 255;
+    if(pos === 'topo'){ gr.addColorStop(0, `rgba(0,0,0,${A})`); gr.addColorStop(.65, 'rgba(0,0,0,0)'); }
+    else if(pos === 'centro'){ gr.addColorStop(.1, 'rgba(0,0,0,0)'); gr.addColorStop(.5, `rgba(0,0,0,${A})`); gr.addColorStop(.9, 'rgba(0,0,0,0)'); }
+    else { gr.addColorStop(.35, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${A})`); }
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    corTxt = c.corTexto; corDest = c.corDestaque;
+  } else if(claro){
+    g.fillStyle = c.fundoClaro; g.fillRect(0, 0, W, H);
+    corTxt = c.textoSobreClaro; corDest = c.destaqueSobreClaro;
+  } else {
+    g.fillStyle = c.fundoEscuro; g.fillRect(0, 0, W, H);
+    corTxt = '#ffffff'; corDest = c.corTexto;
+  }
+
+  const palavras = tokens(slide.texto), area = W - 2 * M;
+  let tam = TAM_MAX, linhas, hl;
+  for(;;){
+    g.font = fonteCss(f, tam);
+    linhas = quebrar(g, palavras, area); hl = Math.round(tam * 1.18);
+    if(linhas.length * hl <= H * .55 || tam <= TAM_MIN) break;
+    tam -= 4;
+  }
+  const bloco = linhas.length * hl, pos = (slide.posicao || 'base').toLowerCase();
+  let y = pos === 'topo' ? M + 40 : pos === 'centro' ? (H - bloco) / 2 : H - M - 70 - bloco;
+
+  g.textBaseline = 'top'; g.font = fonteCss(f, tam);
+  const esp = g.measureText(' ').width;
+  for(const linha of linhas){
+    let x = M;
+    for(const [p, d] of linha){
+      if(sobreFoto){ g.fillStyle = '#000'; g.fillText(p, x + 3, y + 4); }
+      g.fillStyle = d ? corDest : corTxt; g.fillText(p, x, y);
+      x += g.measureText(p).width + esp;
+    }
+    y += hl;
+  }
+
+  if(c.assinatura && (!sobreFoto || c.assinaturaFoto)){
+    g.font = '28px Georgia, serif'; g.fillStyle = claro ? '#8c96a5' : '#788caa';
+    const w = g.measureText(c.assinatura).width; g.fillText(c.assinatura, (W - w) / 2, H - 70);
+  }
+  return cv;
+}
+
+async function prepararFonte(f){
+  try{ await document.fonts.load(fonteCss(f, 100)); await document.fonts.ready; }catch(e){}
+}
+
+/* =========================================================
+   Estado e tela de carrosséis
+   ========================================================= */
+let projetos = [];      // lista completa
+let atual = null;       // projeto aberto
+let urlsFoto = new Map(); // id -> objectURL
+let salvarT = null;
+let resultado = null;   // {canvases, legenda, avisos, nome}
+
+const ordemNatural = (a, b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'});
+const uid = () => Math.random().toString(36).slice(2, 10);
+const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'carrossel';
+
+function toast(msg, ms = 2200){
+  const t = $('#aviso-toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', ms);
+}
+function persistir(){
+  if(!atual) return;
+  clearTimeout(salvarT);
+  salvarT = setTimeout(async () => {
+    atual.atualizado = Date.now();
+    try{ await dbSalvar(atual); }catch(e){ toast('Não consegui guardar neste navegador.'); }
+  }, 350);
+}
+function urlDaFoto(f){
+  if(!urlsFoto.has(f.id)) urlsFoto.set(f.id, URL.createObjectURL(f.blob));
+  return urlsFoto.get(f.id);
+}
+
+function desenharBarra(){
+  const opcoes = projetos.map(p => `<option value="${esc(p.nome)}" ${atual && p.nome === atual.nome ? 'selected' : ''}>${esc(p.nome)}</option>`).join('');
+  $('#barra').innerHTML = `
+    ${projetos.length ? `<select id="sel" aria-label="Carrossel">${opcoes}</select>` : ''}
+    <div class="novo" id="novoBox">
+      <input type="text" id="novoNome" placeholder="Nome do novo carrossel" maxlength="60" aria-label="Nome do novo carrossel">
+      <button class="btn ${projetos.length ? '' : 'pri'}" id="novoBtn">Criar</button>
+    </div>
+    ${atual ? '<button class="link" id="apagar" style="margin-left:auto">Apagar este carrossel</button>' : ''}`;
+  if($('#sel')) $('#sel').onchange = e => abrir(e.target.value);
+  $('#novoBtn').onclick = criar;
+  $('#novoNome').onkeydown = e => { if(e.key === 'Enter') criar(); };
+  if($('#apagar')) $('#apagar').onclick = apagar;
+}
+
+async function criar(){
+  const nome = $('#novoNome').value.trim();
+  if(!nome) return toast('Dê um nome ao carrossel.');
+  if(projetos.some(p => p.nome.toLowerCase() === nome.toLowerCase())) return toast('Já existe um com esse nome.');
+  const p = {nome, texto:'', fotos:[], atualizado:Date.now()};
+  projetos.push(p); await dbSalvar(p); abrir(nome);
+}
+async function apagar(){
+  if(!atual || !confirm(`Apagar "${atual.nome}" com todas as fotos e o texto? Isso não tem volta.`)) return;
+  await dbApagar(atual.nome);
+  projetos = projetos.filter(p => p.nome !== atual.nome);
+  atual = null; resultado = null;
+  projetos.length ? abrir(projetos[0].nome) : (desenharBarra(), desenharArea());
+}
+function abrir(nome){
+  atual = projetos.find(p => p.nome === nome) || null; resultado = null;
+  desenharBarra(); desenharArea();
+}
+
+function desenharArea(){
+  const area = $('#area');
+  if(!atual){
+    area.innerHTML = `<div class="vazio">
+      <h2>Vamos montar o primeiro carrossel</h2>
+      <p style="margin:0">Dê um nome no campo acima e clique em Criar. Depois são três passos:</p>
+      <ol><li>Use a aba <b>Prompt da IA</b> para pedir o texto e a lista de fotos.</li>
+      <li>Jogue as fotos aqui e cole a resposta da IA.</li>
+      <li>Clique em <b>Gerar</b> e baixe os slides.</li></ol></div>`;
+    return;
+  }
+  const n = atual.fotos.length, info = lerTexto(atual.texto);
+  area.innerHTML = `
+  <div class="cols">
+    <div>
+      <div class="passo">
+        <h2 class="serif">1. Fotos <small>${n} ${n === 1 ? 'foto' : 'fotos'}</small></h2>
+        <p class="sub">Qualquer nome de arquivo serve. O número no canto é o que o texto chama de "foto 1", "foto 2".</p>
+        <div class="drop" id="drop" tabindex="0" role="button"><b>Arraste as fotos até aqui</b> ou toque para escolher
+          <input type="file" id="arq" multiple accept="image/jpeg,image/png,image/webp" hidden></div>
+        <div class="fotos" id="fotos"></div>
+      </div>
+
+      <div class="passo">
+        <h2 class="serif">2. Texto <small id="conta">${info.slides.length} ${info.slides.length === 1 ? 'slide' : 'slides'}</small></h2>
+        <p class="sub">Cole a resposta da IA. Pode colar tudo: eu separo só os slides.</p>
+        <textarea id="texto" rows="11" placeholder="Cole aqui o texto que a IA devolveu">${esc(atual.texto)}</textarea>
+        <details class="formato"><summary>Como o texto deve ser</summary>
+<pre>---
+FOTO: 1
+POSICAO: base
+TEXTO: Frase com *destaque* em cor
+---
+FUNDO: escuro
+POSICAO: centro
+TEXTO: Slide liso, sem foto
+=== LEGENDA ===
+Legenda do post e #hashtags</pre></details>
+      </div>
+
+      <div class="linha">
+        <button class="btn pri grande" id="gerar">Gerar carrossel</button>
+        <span class="status" id="genStatus"></span>
+      </div>
+    </div>
+
+    <div class="res" id="res"></div>
+  </div>`;
+
+  desenharFotos();
+  const drop = $('#drop'), arq = $('#arq');
+  drop.onclick = () => arq.click();
+  drop.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); arq.click(); } };
+  arq.onchange = () => { enviar(arq.files); arq.value = ''; };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
+  drop.ondragleave = () => drop.classList.remove('sobre');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('sobre'); enviar(e.dataTransfer.files); };
+
+  const ta = $('#texto');
+  const contar = () => {
+    const k = lerTexto(ta.value).slides.length;
+    $('#conta').textContent = `${k} ${k === 1 ? 'slide' : 'slides'}`;
+  };
+  ta.oninput = () => { atual.texto = ta.value; contar(); persistir(); };
+  ta.onpaste = () => setTimeout(() => {
+    const limpo = extrairTexto(ta.value);
+    if(limpo !== ta.value){ ta.value = limpo; }
+    atual.texto = ta.value; contar(); persistir();
+  }, 30);
+  $('#gerar').onclick = gerar;
+  desenharResultado();
+}
+
+function desenharFotos(){
+  const box = $('#fotos'); if(!box) return;
+  box.innerHTML = atual.fotos.map((f, i) => `
+    <div class="foto" title="${esc(f.name)}">
+      <div class="img"><img src="${urlDaFoto(f)}" alt="Foto ${i + 1}"></div>
+      <span class="n">${i + 1}</span>
+      <div class="ac">
+        <button data-m="-1" data-i="${i}" aria-label="Mover para antes" ${i === 0 ? 'disabled style="opacity:.3"' : ''}>‹</button>
+        <button data-x="${i}" aria-label="Remover foto" title="Remover">×</button>
+        <button data-m="1" data-i="${i}" aria-label="Mover para depois" ${i === atual.fotos.length - 1 ? 'disabled style="opacity:.3"' : ''}>›</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i, j = i + +b.dataset.m, a = atual.fotos;
+    [a[i], a[j]] = [a[j], a[i]]; desenharFotos(); persistir();
+  });
+  box.querySelectorAll('[data-x]').forEach(b => b.onclick = () => {
+    const [f] = atual.fotos.splice(+b.dataset.x, 1);
+    URL.revokeObjectURL(urlsFoto.get(f.id)); urlsFoto.delete(f.id);
+    desenharFotos(); persistir(); atualizarContadorFotos();
+  });
+  atualizarContadorFotos();
+}
+function atualizarContadorFotos(){
+  const s = $('.passo h2 small'); if(s) s.textContent = `${atual.fotos.length} ${atual.fotos.length === 1 ? 'foto' : 'fotos'}`;
+}
+async function enviar(files){
+  const novas = [...files].filter(f => /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name))
+    .sort(ordemNatural).map(f => ({id:uid(), name:f.name, blob:f}));
+  if(!novas.length) return toast('Escolha fotos em jpg, png ou webp.');
+  atual.fotos.push(...novas); desenharFotos(); persistir();
+  toast(`${novas.length} ${novas.length === 1 ? 'foto adicionada' : 'fotos adicionadas'}`);
+}
+
+/* ---------- gerar ---------- */
+async function gerar(){
+  const btn = $('#gerar'), st = $('#genStatus');
+  const {slides, legenda} = lerTexto(atual.texto);
+  if(!slides.length){ st.className = 'status erro'; st.textContent = 'Cole o texto do carrossel primeiro.'; return; }
+  btn.disabled = true; st.className = 'status'; st.textContent = 'Gerando…';
+  try{
+    const f = FONTES.find(x => x.id === cfg.fonte) || FONTES[0];
+    await prepararFonte(f);
+    const bmps = [];
+    for(const ft of atual.fotos) bmps.push(await createImageBitmap(ft.blob));
+    const avisos = []; let auto = 0; const canvases = [];
+    slides.forEach((s, i) => {
+      let bmp = null; const ref = (s.foto || '').trim();
+      if(/^(nenhuma|none|-)$/i.test(ref)) bmp = null;
+      else if(ref){
+        const porNome = atual.fotos.findIndex(x => x.name.toLowerCase() === ref.toLowerCase());
+        const m = ref.match(/^0*(\d+)(\.\w+)?$/);
+        const idx = porNome >= 0 ? porNome : (m ? +m[1] - 1 : -1);
+        if(idx >= 0 && idx < bmps.length) bmp = bmps[idx];
+        else avisos.push(`Slide ${i + 1}: não achei a foto "${ref}". Adicione mais fotos ou ajuste o número.`);
+      } else if(!s.fundo && bmps.length){ bmp = bmps[auto % bmps.length]; auto++; }
+      canvases.push(desenharSlide(s, bmp, cfg, f));
+    });
+    bmps.forEach(b => b.close && b.close());
+    resultado = {canvases, legenda, avisos, nome: atual.nome};
+    st.className = 'status ok'; st.textContent = `Pronto: ${canvases.length} slides.`;
+    desenharResultado();
+    $('#res').scrollIntoView({behavior:'smooth', block:'start'});
+  }catch(e){
+    st.className = 'status erro'; st.textContent = 'Algo deu errado: ' + e.message;
+  }finally{ btn.disabled = false; }
+}
+
+function desenharResultado(){
+  const box = $('#res'); if(!box) return;
+  if(!resultado){
+    box.innerHTML = `<div class="res-vazio">Os slides vão aparecer aqui.</div>`; return;
+  }
+  const r = resultado;
+  box.innerHTML = `
+    <h2 class="serif">Resultado
+      <span class="linha"><button class="btn pri" id="zip">Baixar tudo (.zip)</button></span></h2>
+    ${r.avisos.length ? `<div class="aviso">${r.avisos.map(esc).join('<br>')}</div>` : ''}
+    <div class="slides" id="slides"></div>
+    ${r.legenda ? `<div style="margin-top:22px"><label for="leg">Legenda</label>
+      <textarea id="leg" rows="6">${esc(r.legenda)}</textarea>
+      <div style="margin-top:8px"><button class="btn" id="copLeg">Copiar legenda</button></div></div>` : ''}`;
+  const g = $('#slides');
+  r.canvases.forEach((cv, i) => {
+    const d = document.createElement('div'); d.className = 'sl';
+    d.appendChild(cv);
+    const bar = document.createElement('div');
+    bar.innerHTML = `<span>${i + 1} de ${r.canvases.length}</span><button class="link">baixar</button>`;
+    bar.querySelector('button').onclick = async () => baixar(await paraBlob(cv), `${slug(r.nome)}-${String(i + 1).padStart(2, '0')}.jpg`);
+    d.appendChild(bar); g.appendChild(d);
+    cv.onclick = () => { $('#zoom img').src = cv.toDataURL('image/jpeg', .9); $('#zoom').classList.add('on'); };
+  });
+  $('#zip').onclick = baixarZip;
+  if($('#copLeg')) $('#copLeg').onclick = () => { navigator.clipboard.writeText($('#leg').value); toast('Legenda copiada'); };
+}
+
+const paraBlob = cv => new Promise(res => cv.toBlob(res, 'image/jpeg', .95));
+function baixar(blob, nome){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function baixarZip(){
+  if(!window.JSZip) return toast('Não consegui carregar o gerador de .zip. Verifique a internet.');
+  const z = new JSZip(), r = resultado, base = slug(r.nome);
+  for(let i = 0; i < r.canvases.length; i++) z.file(`slide_${String(i + 1).padStart(2, '0')}.jpg`, await paraBlob(r.canvases[i]));
+  const leg = $('#leg') ? $('#leg').value : r.legenda;
+  if(leg) z.file('legenda.txt', leg);
+  baixar(await z.generateAsync({type:'blob'}), `${base}.zip`);
+}
+$('#zoom').onclick = () => $('#zoom').classList.remove('on');
+document.addEventListener('keydown', e => { if(e.key === 'Escape') $('#zoom').classList.remove('on'); });
+
+/* =========================================================
+   Abas e tema
+   ========================================================= */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.aba').forEach(a => a.classList.toggle('on', a.id === 'aba-' + b.dataset.aba));
+});
+$('#tema').onclick = () => {
+  const novo = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = novo;
+  try{ localStorage.setItem('tema', novo); }catch(e){}
+};
+
+/* =========================================================
+   Aba Prompt
+   ========================================================= */
+let modelo = '';
+function montarPrompt(){
+  let t = modelo;
+  const troca = (rot, val, ph) => { t = t.replace(new RegExp('(- ' + rot + ':\\s*)\\[\\[.*?\\]\\]'), (m, a) => a + (val.trim() || ph)); };
+  troca('Meu perfil/nicho', $('#pNicho').value, '[[preencha seu nicho]]');
+  troca('Público', $('#pPublico').value, '[[preencha seu público]]');
+  troca('Tom de voz', $('#pTom').value, '[[preencha o tom de voz]]');
+  troca('Número de slides', $('#pSlides').value, '8');
+  troca('TEMA DESTE CARROSSEL', $('#pTema').value, '[[preencha o tema]]');
+  $('#pSaida').value = t;
+  const falta = (t.match(/\[\[preencha/g) || []).length;
+  $('#pStatus').textContent = falta ? `Falta preencher ${falta} ${falta === 1 ? 'campo' : 'campos'}.` : 'Tudo preenchido.';
+}
+['pNicho', 'pPublico', 'pTom', 'pSlides', 'pTema'].forEach(id => $('#' + id).oninput = () => {
+  montarPrompt();
+  try{ localStorage.setItem('perfil', JSON.stringify({n:$('#pNicho').value, p:$('#pPublico').value, t:$('#pTom').value, s:$('#pSlides').value})); }catch(e){}
+});
+$('#pCopiar').onclick = () => { navigator.clipboard.writeText($('#pSaida').value); toast('Prompt copiado'); };
+
+/* =========================================================
+   Aba Estilo
+   ========================================================= */
+function desenharEstilo(){
+  $('#cFonte').innerHTML = FONTES.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+  $('#cFonte').value = cfg.fonte;
+  $('#cAssinatura').value = cfg.assinatura;
+  $('#cEscurecer').value = cfg.escurecer; $('#cEscVal').textContent = Math.round(cfg.escurecer * 100) + '%';
+  $('#cAssFoto').checked = cfg.assinaturaFoto;
+  $('#cores').innerHTML = ROT_CORES.map(([k, rot]) =>
+    `<label class="cor" style="margin:0;color:var(--ink)"><input type="color" data-k="${k}" value="${cfg[k]}"><span>${rot}<code>${cfg[k]}</code></span></label>`).join('');
+  $('#cores').querySelectorAll('input').forEach(i => i.oninput = () => {
+    cfg[i.dataset.k] = i.value; i.nextElementSibling.querySelector('code').textContent = i.value; salvarCfg(cfg); okEstilo();
+  });
+}
+const okEstilo = () => { $('#cStatus').textContent = 'Salvo.'; clearTimeout(okEstilo.t); okEstilo.t = setTimeout(() => $('#cStatus').textContent = '', 1600); };
+$('#cFonte').onchange = e => { cfg.fonte = e.target.value; salvarCfg(cfg); okEstilo(); };
+$('#cAssinatura').oninput = e => { cfg.assinatura = e.target.value.slice(0, 60); salvarCfg(cfg); okEstilo(); };
+$('#cEscurecer').oninput = e => { cfg.escurecer = +e.target.value; $('#cEscVal').textContent = Math.round(cfg.escurecer * 100) + '%'; salvarCfg(cfg); okEstilo(); };
+$('#cAssFoto').onchange = e => { cfg.assinaturaFoto = e.target.checked; salvarCfg(cfg); okEstilo(); };
+$('#cPadrao').onclick = () => { cfg = {...PADRAO}; salvarCfg(cfg); desenharEstilo(); okEstilo(); };
+
+/* =========================================================
+   Início
+   ========================================================= */
+(async function iniciar(){
+  desenharEstilo();
+  try{
+    const p = JSON.parse(localStorage.getItem('perfil') || '{}');
+    $('#pNicho').value = p.n || ''; $('#pPublico').value = p.p || ''; $('#pTom').value = p.t || ''; if(p.s) $('#pSlides').value = p.s;
+  }catch(e){}
+  try{ modelo = await (await fetch('prompt.txt')).text(); }catch(e){ modelo = 'Não consegui carregar o modelo do prompt.'; }
+  montarPrompt();
+
+  projetos = (await dbListar()).sort((a, b) => (b.atualizado || 0) - (a.atualizado || 0));
+  desenharBarra();
+  if(projetos.length) abrir(projetos[0].nome); else desenharArea();
+  if(!dbOk) toast('Este navegador não deixa guardar dados: o que você fizer some ao fechar a aba.', 5000);
+})();
+</script>
+</body>
+</html>

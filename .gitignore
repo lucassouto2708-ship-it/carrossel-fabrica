@@ -1,3 +1,7 @@
+fotos/*
+!fotos/.gitkeep
 saida/
 __pycache__/
 *.pyc
+.teste/
+
